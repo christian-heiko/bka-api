@@ -9,10 +9,9 @@
     "license": "MIT",
     "type": "library",
     "require": {
-        "guzzlehttp/psr7": "^2.6",
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "guzzlehttp/guzzle": "^7.0"
     },
-    "require-dev": {},
     "autoload": {
         "psr-4": {
             "ChristianHeiko\\Bka\\": "src/"

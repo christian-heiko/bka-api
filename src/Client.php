@@ -2,16 +2,20 @@
 
 namespace ChristianHeiko\Bka;
 
+use ChristianHeiko\Bka\Data\Event;
+use ChristianHeiko\Bka\Interface\ToArray;
 use Exception;
-use GuzzleHttp\Client;
+use GuzzleHttp\Client as Guzzle;
 use GuzzleHttp\Exception\ClientException;
 use Psr\Http\Message\ResponseInterface;
 
-class ApiClient extends Client {
+class Client {
 
     public const DEFAULT_MAX_RESULT = 10;
 
     public string $tokenEndpoint;
+
+    public Guzzle $client;
 
     public function __construct(
         public string $url,
@@ -30,7 +34,7 @@ class ApiClient extends Client {
 
         $url .= "v$version/";
 
-        parent::__construct([
+        $this->client = new Guzzle([
             ...$guzzleOptions,
             'base_uri' => $url,
             'headers' => [
@@ -113,13 +117,13 @@ class ApiClient extends Client {
         );
     }
 
-    public function saveEvent(array $eventData, string|null $id = null): object {
+    public function saveEvent(array|Event $eventData, string|null $id = null): object {
         return empty($id)
             ? $this->addEvent($eventData)
             : $this->updateEvent($id, $eventData);
     }
 
-    public function addEvent(array $eventData): object {
+    public function addEvent(array|Event $eventData): object {
         return $this->callApi(
             endpoint: 'events/',
             formData: $eventData,
@@ -127,7 +131,7 @@ class ApiClient extends Client {
         );
     }
 
-    public function updateEvent(string $id, array $eventData): object {
+    public function updateEvent(string $id, array|Event $eventData): object {
         return $this->callApi(
             endpoint: "events/$id",
             formData: $eventData,
@@ -234,7 +238,7 @@ class ApiClient extends Client {
 
     private function refreshAccessToken() {
         try {
-            $response = $this->post($this->tokenEndpoint, [
+            $response = $this->client->post($this->tokenEndpoint, [
                 'form_params' => [
                     'grant_type' => 'refresh_token',
                     'client_id' => $this->clientId,
@@ -262,17 +266,22 @@ class ApiClient extends Client {
         return $this->accessToken;
     }
 
-    public function callApi(string $endpoint, array $queryParams = [], array $requestOptions = [], array|object $formData = null, string $method = 'GET'): object|array|bool {
+    public function callApi(string $endpoint, array $queryParams = [], array $requestOptions = [], array|Event $formData = null, string $method = 'GET'): object|array|bool {
         if (!empty($queryParams)) {
             $requestOptions['query'] = $queryParams;
         }
 
         if (!empty($formData)) {
+            if ($formData instanceof ToArray) {
+                $formData = $formData->toArray();
+            }
+
             $requestOptions['headers'] = ['Content-Type' => 'application/json'];
-            $requestOptions['body'] = json_encode($formData);
+            $requestOptions['body'] = json_encode($formData, JSON_THROW_ON_ERROR);
         }
 
-        $response = $this->request($method, $endpoint, $requestOptions);
+        $response = $this->client->request($method, $endpoint, $requestOptions);
+
         $parsed = $this->json($response);
 
         return $method === 'DELETE'
