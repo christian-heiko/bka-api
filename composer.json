@@ -1,0 +1,22 @@
+{
+    "name": "christian-heiko/bka-api",
+    "description": "BKA Api Implementation for Guzzle/Php",
+    "type": "library",
+    "require": {
+        "guzzlehttp/psr7": "^2.6",
+        "league/oauth2-client": "^2.7",
+        "php": ">=8.2"
+    },
+    "require-dev": {},
+    "autoload": {
+        "psr-4": {
+            "ChristianHeiko\\Bka\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Christian Heiko Wüthrich",
+            "email": "wuethrich.ch@gmail.com"
+        }
+    ]
+}
