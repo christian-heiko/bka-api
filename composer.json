@@ -1,7 +1,8 @@
 {
     "name": "christian-heiko/bka-api",
-    "description": "BKA Api Implementation for Guzzle/Php",
+    "description": "API-Client for Berner Kulturagenda",
     "keywords": [
+        "bernerkulturagenda",
         "kulturagenda",
         "bka",
         "in-situ"

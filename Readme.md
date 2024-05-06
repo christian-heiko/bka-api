@@ -1,5 +1,14 @@
 # Berner Kulturagenda API
 
+This is my first open source package; feel free to contribute or give feedback ✌️
+
+
+
+## Installation
+
+```shell
+composer require christian-heiko/bka-api
+```
 
 ## Create Instance
 

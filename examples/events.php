@@ -7,15 +7,16 @@ use ChristianHeiko\Bka\Data\Rate;
 use ChristianHeiko\Bka\Enum\EventStatus;
 use ChristianHeiko\Bka\Enum\PublicationStatus;
 use ChristianHeiko\Bka\Data\Text;
+use GuzzleHttp\Exception\ClientException;
 
 include __DIR__ . '/../vendor/autoload.php';
 
-$client = new Client('url', 'clientId', 'clientSecret', 'accessToken', 'refreshToken');
+$client = new Client('https://domain.ch/api','','','','');
 
-$placeId = 0; // Find beforehand in the places endpoint.
-$organizationID = 0; // Find beforehand in the organizations endpoint.
-$audienceID = 0; // Find/Map beforehand from the audiences endpoint.
-$categories = [0];  // Find/Map beforehand from the audiences endpoint.
+$placeId = 1; // Find beforehand in the places endpoint.
+$organizationID = 1; // Find beforehand in the organizations endpoint.
+$audienceID = 1; // Find/Map beforehand from the audiences endpoint.
+$categories = [1];  // Find/Map beforehand from the audiences endpoint.
 $language = 'de'; // Only de is currently supported.
 
 
@@ -57,14 +58,18 @@ $eventData = new Event(
 $eventData->images[] = Image::makeFromPath($eventDbEntry->image, Text::make($language, 'Image: ' . $eventDbEntry->title));
 $eventData->rates[] = new Rate($eventDbEntry->fee, Text::make($language, 'Regular Ticket'));
 
-
-
 // Save Event is a shortcut to $client->addEvent() or $client->updateEvent()
-$savedEvent = $client->saveEvent($eventData, $bkaApiEvent?->id);
+try {
+    $savedEvent = $client->saveEvent($eventData, $bkaApiEvent?->id);
 
-// Store slug of event to db to update it in the future
-$eventDbEntry->bka_api_slug = $savedEvent->slug;
-// $eventDbEntry->save() or whatever.
+    // Store slug of event to db to update it in the future
+    $eventDbEntry->bka_api_slug = $savedEvent->slug;
+    // $eventDbEntry->save() or whatever.
 
-// Delete the event:
-$client->deleteEvent($savedEvent->id);
+    // Delete the event:
+    $client->deleteEvent($savedEvent->id);
+
+    // Finished
+} catch (ClientException $e) {
+    var_dump($client->json($e->getResponse()));
+}
