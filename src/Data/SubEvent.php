@@ -14,9 +14,9 @@ class SubEvent implements ToArray {
 
     public function toArray(): array{
         return [
-            'date_from' => $this->date_from->format(\DateTimeInterface::ATOM),
-            'date_to' => $this->date_to->format(\DateTimeInterface::ATOM),
-            'opening_time' => $this->openingTime->format('H:i'),
+            'date_from' => $this->date_from->format(Event::DATE_FORMAT),
+            'date_to' => $this->date_to->format(Event::DATE_FORMAT),
+            'opening_time' => $this->openingTime->format(Event::TIME_FORMAT),
         ];
     }
 }

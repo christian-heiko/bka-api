@@ -10,6 +10,9 @@ use ChristianHeiko\Bka\Interface\ToArray;
 
 class Event implements ToArray {
 
+    public const DATE_FORMAT = 'Y-m-d\TH:i:s\Z';
+
+    public const TIME_FORMAT = 'H:i';
 
     public function __construct(
         public string $name,
@@ -59,9 +62,9 @@ class Event implements ToArray {
             'place' => $this->place,
             'organization' => $this->organization,
             'categories' => array_map(fn(mixed $value): int => (int)$value, $this->categories),
-            'dateFrom' => $this->dateFrom->format(\DateTimeInterface::ATOM),
-            'dateTo' => $this->dateTo->format(\DateTimeInterface::ATOM),
-            'openingTime' => $this->openingTime->format('H:i'),
+            'dateFrom' => $this->dateFrom->format(self::DATE_FORMAT),
+            'dateTo' => $this->dateTo->format(self::DATE_FORMAT),
+            'openingTime' => $this->openingTime->format(self::TIME_FORMAT),
             'recurrence' => $this->recurrence->value,
             'recurrenceWeekDays' => $this->recurrenceWeekDays,
             'subEvents' => array_map(fn(SubEvent $subEvent): array => $subEvent->toArray(), $this->subEvents),
@@ -78,7 +81,7 @@ class Event implements ToArray {
         }
 
         if (!is_null($this->publicationDate)) {
-            $data['publicationDate'] = $this->publicationDate->format(\DateTimeInterface::ATOM);
+            $data['publicationDate'] = $this->publicationDate->format(self::DATE_FORMAT);
         }
 
         return $data;
