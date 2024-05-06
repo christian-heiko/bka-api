@@ -10,7 +10,6 @@
     "type": "library",
     "require": {
         "guzzlehttp/psr7": "^2.6",
-        "league/oauth2-client": "^2.7",
         "php": ">=8.2"
     },
     "require-dev": {},
