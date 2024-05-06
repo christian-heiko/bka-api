@@ -1,6 +1,12 @@
 {
     "name": "christian-heiko/bka-api",
     "description": "BKA Api Implementation for Guzzle/Php",
+    "keywords": [
+        "kulturagenda",
+        "bka",
+        "in-situ",
+    ],
+    "license": "MIT",
     "type": "library",
     "require": {
         "guzzlehttp/psr7": "^2.6",
