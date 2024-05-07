@@ -238,7 +238,7 @@ class Client {
 
     private function refreshAccessToken() {
         try {
-            $response = $this->client->post($this->tokenEndpoint, [
+            $response = (new Guzzle)->post($this->tokenEndpoint, [
                 'form_params' => [
                     'grant_type' => 'refresh_token',
                     'client_id' => $this->clientId,
