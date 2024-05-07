@@ -13,6 +13,10 @@ class Text implements ToArray {
     }
 
     public function setText(string $language, string $text): static {
+        if (empty($text)) {
+            throw new \InvalidArgumentException('Text cannot be empty');
+        }
+
         $this->languages[$language] = $text;
 
         return $this;
