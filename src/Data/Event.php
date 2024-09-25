@@ -24,11 +24,13 @@ class Event implements ToArray {
         public \DateTimeInterface $dateTo,
         public \DateTimeInterface $openingTime,
         public Text $description,
+        public Text $printDescription,
         public int $audience,
         public PublicationStatus $publicationStatus,
 
         // Optional:
         public ?string $ticketingUrl = null,
+        public bool $showInPrint = false,
         public ?\DateTimeInterface $publicationDate = null,
         public Recurrence $recurrence = Recurrence::none,
         public ?SpecialRate $specialRate = null,
@@ -54,11 +56,11 @@ class Event implements ToArray {
         return $this;
     }
 
-
     public function toArray(): array {
         $data = [
             'name' => $this->name,
             'eventStatus' => $this->eventStatus->value,
+            'showInPrint' => $this->showInPrint,
             'place' => $this->place,
             'organization' => $this->organization,
             'categories' => array_map(fn(mixed $value): int => (int)$value, $this->categories),
@@ -69,6 +71,7 @@ class Event implements ToArray {
             'recurrenceWeekDays' => $this->recurrenceWeekDays,
             'subEvents' => array_map(fn(SubEvent $subEvent): array => $subEvent->toArray(), $this->subEvents),
             'description' => $this->description->toArray(),
+            'printDescription' => $this->printDescription->toArray(),
             'images' => array_map(fn(Image $image): array => $image->toArray(), $this->images),
             'rates' => array_map(fn(Rate $rate): array => $rate->toArray(), $this->rates),
             'ticketingUrl' => $this->ticketingUrl,
