@@ -50,9 +50,11 @@ $eventData = new Event(
     new DateTime($eventDbEntry->end),
     new DateTime($eventDbEntry->doors),
     Text::make($language, $eventDbEntry->text),
+    Text::make($language, $eventDbEntry->textShort),
     $audienceID,
     PublicationStatus::publish,
-    $eventDbEntry->tickets
+    $eventDbEntry->tickets,
+    true
 );
 
 $eventData->images[] = Image::makeFromPath($eventDbEntry->image, Text::make($language, 'Image: ' . $eventDbEntry->title));
