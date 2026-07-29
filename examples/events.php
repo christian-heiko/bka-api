@@ -11,7 +11,14 @@ use GuzzleHttp\Exception\ClientException;
 
 include __DIR__ . '/../vendor/autoload.php';
 
-$client = new Client('https://domain.ch/api','','','','');
+$client = new Client(
+    'https://domain.ch/api', '', '', '', '',
+    // Access tokens expire after an hour. The client refreshes them for you;
+    // this callback is how you get to keep the new one.
+    onTokenRefresh: function (string $accessToken, string $refreshToken): void {
+        // Persist to your DB, then pass $accessToken in on the next request.
+    }
+);
 
 $placeId = 1; // Find beforehand in the places endpoint.
 $organizationID = 1; // Find beforehand in the organizations endpoint.
@@ -28,6 +35,7 @@ $eventDbEntry = (object)[
     'end' => '01.01.2025 22:00',
     'doors' => '01.01.2025 17:00',
     'text' => 'Best Party in Town',
+    'textShort' => 'Best Party', // Shown in the print edition.
     'fee' => 25.50,
     'image' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/1200px-SMPTE_Color_Bars.svg.png',
     'tickets' => 'https://www.petzi.ch/de/'

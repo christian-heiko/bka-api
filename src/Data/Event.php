@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ChristianHeiko\Bka\Data;
 
 use ChristianHeiko\Bka\Enum\EventStatus;
@@ -14,6 +16,9 @@ class Event implements ToArray {
 
     public const TIME_FORMAT = 'H:i';
 
+    /** The API documents publicationDate as `format: date`, not `date-time`. */
+    public const PUBLICATION_DATE_FORMAT = 'Y-m-d';
+
     public function __construct(
         public string $name,
         public EventStatus $eventStatus,
@@ -22,7 +27,7 @@ class Event implements ToArray {
         public array $categories,
         public \DateTimeInterface $dateFrom,
         public \DateTimeInterface $dateTo,
-        public \DateTimeInterface $openingTime,
+        public ?\DateTimeInterface $openingTime,
         public Text $description,
         public Text $printDescription,
         public int $audience,
@@ -56,6 +61,7 @@ class Event implements ToArray {
         return $this;
     }
 
+    /** @return array<string, mixed> */
     public function toArray(): array {
         $data = [
             'name' => $this->name,
@@ -66,7 +72,6 @@ class Event implements ToArray {
             'categories' => array_map(fn(mixed $value): int => (int)$value, $this->categories),
             'dateFrom' => $this->dateFrom->format(self::DATE_FORMAT),
             'dateTo' => $this->dateTo->format(self::DATE_FORMAT),
-            'openingTime' => $this->openingTime->format(self::TIME_FORMAT),
             'recurrence' => $this->recurrence->value,
             'recurrenceWeekDays' => $this->recurrenceWeekDays,
             'subEvents' => array_map(fn(SubEvent $subEvent): array => $subEvent->toArray(), $this->subEvents),
@@ -79,12 +84,16 @@ class Event implements ToArray {
             'publicationStatus' => $this->publicationStatus->value,
         ];
 
+        if (!is_null($this->openingTime)) {
+            $data['openingTime'] = $this->openingTime->format(self::TIME_FORMAT);
+        }
+
         if (!is_null($this->specialRate)) {
             $data['specialRate'] = $this->specialRate->value;
         }
 
         if (!is_null($this->publicationDate)) {
-            $data['publicationDate'] = $this->publicationDate->format(self::DATE_FORMAT);
+            $data['publicationDate'] = $this->publicationDate->format(self::PUBLICATION_DATE_FORMAT);
         }
 
         return $data;

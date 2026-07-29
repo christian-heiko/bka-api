@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ChristianHeiko\Bka\Data;
 
 use ChristianHeiko\Bka\Interface\ToArray;
@@ -12,6 +14,7 @@ class Rate implements ToArray {
     ) { }
 
 
+    /** @return array<string, mixed> */
     public function toArray(): array {
         return [
             'price' => $this->price,

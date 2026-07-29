@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace ChristianHeiko\Bka\Data;
 
+use ChristianHeiko\Bka\Exception\InvalidTextException;
 use ChristianHeiko\Bka\Interface\ToArray;
 
+/** @phpstan-consistent-constructor Subclasses must keep the constructor signature; make() relies on it. */
 class Text implements ToArray {
 
     public array $languages = [];
@@ -14,7 +18,7 @@ class Text implements ToArray {
 
     public function setText(string $language, string $text): static {
         if (empty($text)) {
-            throw new \InvalidArgumentException('Text cannot be empty');
+            throw new InvalidTextException('Text cannot be empty');
         }
 
         $this->languages[$language] = $text;
@@ -22,6 +26,7 @@ class Text implements ToArray {
         return $this;
     }
 
+    /** @return array<string, mixed> */
     public function toArray(): array {
         return $this->languages;
     }

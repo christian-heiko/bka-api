@@ -1,0 +1,10 @@
+parameters:
+    # Level 5 rather than 6 on purpose. Level 6 demands a value type for every
+    # `array`, which cannot be stated honestly while callApi() returns
+    # `object|array|bool` and responses are raw stdClass. Raise this to 6+ once
+    # typed response models land — see the Tier C notes in CLAUDE.md.
+    level: 5
+    paths:
+        - src
+        - tests
+    treatPhpDocTypesAsCertain: false

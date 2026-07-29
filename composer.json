@@ -1,6 +1,7 @@
 {
     "name": "christian-heiko/bka-api",
     "description": "API-Client for Berner Kulturagenda",
+    "homepage": "https://github.com/christian-heiko/bka-api",
     "keywords": [
         "bernerkulturagenda",
         "kulturagenda",
@@ -9,19 +10,43 @@
     ],
     "license": "MIT",
     "type": "library",
+    "support": {
+        "issues": "https://github.com/christian-heiko/bka-api/issues",
+        "source": "https://github.com/christian-heiko/bka-api"
+    },
     "require": {
-        "php": ">=8.2",
-        "guzzlehttp/guzzle": "^7.0"
+        "php": "^8.4",
+        "guzzlehttp/guzzle": "^7.9 || ^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5 || ^12.0",
+        "phpstan/phpstan": "^2.1"
     },
     "autoload": {
         "psr-4": {
             "ChristianHeiko\\Bka\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ChristianHeiko\\Bka\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse",
+        "check": [
+            "@test",
+            "@stan"
+        ]
+    },
     "authors": [
         {
             "name": "Christian Heiko Wüthrich",
             "email": "wuethrich.ch@gmail.com"
         }
-    ]
+    ],
+    "config": {
+        "sort-packages": true
+    }
 }
