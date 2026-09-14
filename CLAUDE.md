@@ -21,11 +21,12 @@ OpenAPI 3.0, ~1800 lines, browsable at [admin.bka.ch/api/doc](https://admin.bka.
 ```bash
 composer install          # install deps (Guzzle only)
 composer dump-autoload    # after adding/renaming classes under src/
-php examples/events.php   # only executable entry point; needs real credentials to do anything
+php examples/events.php   # v1 example; needs real v1 credentials to do anything
+php examples/events-v2.php  # v2 example; needs BKA_TOKEN — and writes to the public agenda
 ```
 
 ```bash
-composer test             # PHPUnit — 44 tests, no credentials or network needed
+composer test             # PHPUnit, v1 and v2 — no credentials or network needed
 composer stan             # PHPStan
 composer check            # both
 vendor/bin/phpunit --filter it_exposes_the_envelope_total   # single test
@@ -49,7 +50,9 @@ composer update && composer test     # back to 8.x
 
 PHPStan sits at **level 5, deliberately**. Level 6 requires a value type for every `array`, which cannot be stated honestly while `callApi()` returns `object|array|bool` and responses are raw `stdClass`. Raise it when typed response models land.
 
-## Architecture
+## Architecture (v1)
+
+This section and the conventions further down describe the v1 client (`src/Client.php`, `src/Data/*`). v2 has its own section below; where a rule differs — dates, nulls, updates — the v2 section wins.
 
 Two layers, connected by one interface:
 
@@ -90,6 +93,24 @@ The constructor mutates the local `$url` after promotion, so:
 - `$this->url` keeps the **original, un-normalised** value passed in.
 - Guzzle's `base_uri` is `{url}/v{version}/` (version defaults to 1).
 - `$this->tokenEndpoint` is `{url}/token` — outside the versioned path. Given a base of `https://admin.bka.ch/api` that resolves to `https://admin.bka.ch/api/token`, which is what the spec documents.
+
+## API v2 (`src/V2/`)
+
+The BKA profile now issues **v2 tokens**: a LexikJWT with `username`/`roles`/`uuid` claims and years of validity. v1 is a league/oauth2-server resource server: it accepts that token's signature, then fails on the missing `jti`, so **every v1 call answers 500**. v2 lives at `{host}/api/v2`, is API Platform, and has **no published spec** — `/api/doc?_format=…` serves the v1 page. The JSON-LD contexts at `/api/v2/contexts/{Resource}` list the property names. `V2\Client` is deliberately a separate class, not a `$version` switch: auth, envelope, addressing, update verb, relations, images and errors all differ.
+
+Everything in `src/V2` was established against production on 2026-09-14:
+
+- **Write model** (from 422 violations plus draft round trips): required `name`, `event_status`, `place`, `categories`, `date_from`, `date_to`, `audience`, `labels` (which must hold `description`). Relations are IRIs: places **by slug** (`/api/v2/places/81` is rejected), categories, audiences and images by id. Rates are `{price: float, labels: {designation}}` (a string price is a 400). Ticket links are `ticketings[{ticketing_designation, labels: {ticketingUrl, designation}}]`. `organization`, `show_in_print`/`showInPrint` and `ticketing_url` are accepted and **dropped**. `event_status`, `publication_status`, `recurrence` and `special_rate` are **not validated** server-side (an unknown value gets stored), so send only enum values; `ticketing_designation` is validated.
+- **Drafts are invisible to GET** (item and collection) but can be patched. So `saveEvent()` never decides on a lookup: it updates when given a slug and creates when given none. It deliberately does **not** answer a 404 with a create — BKA regenerates the slug on rename, so a 404 may only mean the stored slug is stale, and a create would publish the event twice.
+- **No answer ≠ no effect.** Guzzle transport errors become `TransportException`: a write may have been applied although its response was lost. Callers must not treat fresh uploads as orphans in that case.
+- **Any PATCH of an event with attached images is a 422** ("reassign the image") unless `images` is replaced by fresh uploads or `[]`, even when `images` is omitted. Replaced images stay detached until deleted; deleting the event deletes the attached ones. Rates and ticketings are replaced, not appended. The slug is regenerated on rename.
+- **Image upload**: multipart `file` only, with `Accept: application/ld+json` (anything else is a 406). A `labels[legend][…]` part gives a 500, a flat `legend` part is ignored, and PATCH on an image is a 405.
+- `date_from` must precede `date_to` — a class-level violation with an empty `propertyPath`.
+- A trailing slash answers 301, so the client disables redirects: a POST can never silently turn into a GET.
+
+**Probing safely.** A POST to `/api/v2/events` without `name` always fails validation (422) and persists nothing. Answer format questions by sending one candidate field at a time and reading `violations`. Anything that needs a real write needs a draft test event that is deleted in a `finally`.
+
+The v2 tests live in `tests/V2` with their own `TestCase` (MockHandler, `lastRequest()` sees requests after the auth middleware) and `EventFactory`.
 
 ## Conventions that matter
 
