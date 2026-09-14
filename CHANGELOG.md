@@ -4,6 +4,25 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-09-14
+
+### Added
+
+- **A client for BKA API v2**, `ChristianHeiko\Bka\V2\Client`, next to the unchanged v1 `Client`.
+  The BKA profile now issues v2 tokens (one long-lived JWT), which v1 answers with a 500. v2 has no
+  published specification; its contract was established against the live API (see CLAUDE.md).
+  It covers JSON-LD responses and pagination (`lastTotal()`, `allEvents()`), slug-addressed events,
+  merge-patch updates, `saveEvent()` (update by slug, create without one — never a create in answer
+  to a 404), multipart `uploadImage()` and `deleteImage()`, and local token checks (`isTokenValid()`,
+  `tokenExpiresAt()`). The token cannot be read back from the client.
+- `V2\Data\Event`, `Rate`, `SubEvent`, `Ticketing` and `V2\Iri`: the v2 write model, with snake_case
+  keys, IRIs for relations, texts under `labels`, and dates that keep their UTC offset.
+- `Enum\TicketingDesignation`, which can also guess the provider from a ticket URL.
+- `ApiException` with the subclasses `NotFoundException` and `ValidationException` (per-field
+  `$violations`), and `TransportException` for requests that got no answer. Like every package
+  exception, they implement `BkaException`. The v2 client wraps Guzzle's transport errors and JSON
+  encoding errors (as `InvalidTextException`) so that nothing else escapes it.
+
 ## [3.0.0] - 2026-07-29
 
 ### Breaking

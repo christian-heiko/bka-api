@@ -5,13 +5,12 @@ Use it to read/create/update/delete Events and get other data such as audiences,
 
 ### API Credentials
 
-To use it you will need a login to one of the Platform as well as API-Credentials:
-- Client ID
-- Client Secret
-- Access Token
-- Refresh Token
+You need a login to one of the platforms and API credentials:
 
-To obtain these credentials please get in Contact with the Support of one of these pages.
+- **API v2** — what the BKA profile issues today: one long-lived token, generated in the profile.
+  Use `V2\Client`; see [API v2](#api-v2).
+- **API v1** — Client ID, Client Secret, Access Token and Refresh Token, from the platform's support.
+  v1 answers a v2 token with a 500.
 
 ### Support
 This is an unofficial package and neither this nor me are related or working for one of the organizations or related companies. Therefore, I can not offer support for api-sided issues but im happy to support issues related to this package.
@@ -34,7 +33,105 @@ The official API documentation is published at
 [admin.bka.ch/api/doc](https://admin.bka.ch/api/doc) / [admin.insitu.live/api/doc](https://admin.insitu.live/api/doc)
 (OpenAPI source at `/openapi.yaml`).
 
-## Create Instance
+## API v2
+
+BKA runs a second, undocumented API next to v1: API Platform at `{host}/api/v2`. Tokens generated in
+the BKA profile today are v2 tokens — one long-lived JWT, no client id, secret or refresh token — and
+v1 answers such a token with a 500. Use `ChristianHeiko\Bka\V2\Client` for them:
+
+```php
+<?php
+
+use ChristianHeiko\Bka\Data\Text;
+use ChristianHeiko\Bka\Enum\EventStatus;
+use ChristianHeiko\Bka\V2\Client;
+use ChristianHeiko\Bka\V2\Data\Event;
+use ChristianHeiko\Bka\V2\Data\Rate;
+use ChristianHeiko\Bka\V2\Data\Ticketing;
+
+$client = new Client('https://admin.bka.ch/api', $token);
+// or: Client::makeFromEnv(); // BKA_URL + BKA_TOKEN
+
+$zurich = new DateTimeZone('Europe/Zurich');
+
+$event = new Event(
+    'Some Party Title',
+    EventStatus::confirmed,
+    'your-place-slug',   // places are addressed by slug — see $client->places('keyword')
+    [1, 3],              // category ids — $client->categories()
+    new DateTime('2026-12-31 22:00', $zurich),
+    new DateTime('2027-01-01 04:00', $zurich),
+    Text::make('de', '<p>Best Party in Town</p>'),
+    1,                   // audience id — $client->audiences()
+    openingTime: new DateTime('2026-12-31 21:30', $zurich),
+);
+
+$event->attachRate(new Rate(25, Text::make('de', 'Normal')));
+$event->attachTicketing(Ticketing::fromUrl('https://www.petzi.ch/de/events/1', Text::make('de', 'Vorverkauf')));
+$event->attachImage($client->uploadImage('/path/to/image.jpg')->id);
+
+$saved = $client->saveEvent($event, $knownSlug); // PATCH by slug, or create when none is known
+// Keep $saved->slug: it changes when the event is renamed.
+```
+
+Full example with error handling: `examples/events-v2.php`.
+
+```php
+$client->events(page: 1, itemsPerPage: 30);   // the account's published events; lastTotal() has the count
+$client->allEvents();
+$client->event('slug');                        // null when not found — or a draft, see below
+$client->createEvent($event);
+$client->updateEvent('slug', $event);          // JSON merge patch
+$client->saveEvent($event, 'slug' | null);
+$client->deleteEvent('slug');
+$client->uploadImage('/path/or/url.jpg');
+$client->deleteImage($id);
+$client->categories(); $client->audiences(); $client->affiliations(); $client->regions();
+$client->places(keyword: 'bern'); $client->organizations(keyword: 'bern');
+```
+
+### What is different in v2
+
+| | v1 | v2 |
+|---|---|---|
+| Auth | OAuth access token (1 h) + refresh token | one JWT from the BKA profile, no refresh |
+| Responses | `{code, message, data}` | JSON-LD; collections carry `member` and `totalItems` |
+| Events addressed by | numeric id, updated with `PUT` | slug, updated with `PATCH` (merge patch) |
+| Relations | ids | IRIs, built by `V2\Iri` — places by **slug** |
+| Dates | `Y-m-d\TH:i:s\Z` | RFC 3339 with offset: pass local times in their timezone |
+| Images | base64 inside the event | `uploadImage()` first, then reference the id |
+| Ticket link | `ticketingUrl` | `ticketings` (`V2\Data\Ticketing`) |
+| Errors | Guzzle `ClientException` | `ApiException`, `ValidationException` (`$violations`), `NotFoundException`; `TransportException` when no answer came |
+
+### Pitfalls the API does not tell you about
+
+- **Drafts are invisible to reads.** `event()` answers null and `events()` leaves them out, while an
+  update still finds them. Never choose between update and create on the strength of a lookup:
+  `saveEvent()` updates when given a slug and creates only when given none.
+- **A 404 on an update does not prove the event is gone.** BKA regenerates the slug on rename, so the
+  stored slug may just be stale. `saveEvent()` throws `NotFoundException` rather than creating a
+  second copy; look the event up by its id in `allEvents()` (published events only) and decide.
+- **No answer is not the same as no effect.** After a `TransportException` a write may have been
+  applied; keep the ids of fresh uploads and clean them up after the next successful save.
+- `event_status`, `publication_status`, `recurrence` and `special_rate` are not validated by the
+  API — an unknown value is stored. `ticketing_designation` is validated.
+- `opening_time` and `publication_date` cannot be cleared through `Event`: they are left out of the
+  payload when unset.
+- **An update of an event that has images fails** with "You do not have permission to reassign the
+  image" unless it replaces them — even when `images` is left out. Upload the images again for every
+  update (or send none) and `deleteImage()` the replaced ones, which are only detached. Deleting an
+  event deletes its current images.
+- **The slug changes on rename.** Keep the one in the response.
+- **Image legends cannot be set:** a multipart `labels[legend]` part makes the upload fail with a 500,
+  a flat `legend` part is ignored, and images cannot be patched.
+- **`show_in_print`, `organization` and `ticketing_url` are accepted and dropped.**
+- `events()` lists only the account's own published events and ignores v1's filters (`keyword`,
+  `place`, `limit`); page with `page` and `itemsPerPage`.
+- A label cannot be removed by an update — `null` is rejected as a structural error.
+
+## Create Instance (v1)
+
+The sections from here on describe the v1 client.
 
 
 ### Direct
